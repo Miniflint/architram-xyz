@@ -1,8 +1,17 @@
 #include "main.h"
 #include "main_struct.h"
 
-void window_handling(t_sdl_data *p)
+void print_mouse(char *str, int x, int y)
 {
+    printf("%s (%d, %d)\n", str, x, y);
+}
+
+void window_handling(t_sdl_data *p, t_sdl_image *i)
+{
+    int             track_mouse;
+    t_track_mouse   mouse;
+
+    track_mouse = 0;
     while (1)
     {
         if (SDL_PollEvent(&p->windowEvent))
@@ -14,26 +23,55 @@ void window_handling(t_sdl_data *p)
                 if (p->windowEvent.key.keysym.sym == SDLK_ESCAPE)
                     break ;
             }
+            else if (p->windowEvent.type == SDL_MOUSEBUTTONDOWN)
+            {
+                if (p->windowEvent.button.button == SDL_BUTTON_LEFT)
+                {
+                    track_mouse = 1;
+                    mouse.down_posX = p->windowEvent.button.x;
+                    mouse.down_posY = p->windowEvent.button.y;
+                    mouse.draw_rect.x = mouse.down_posX;
+                    mouse.draw_rect.y = mouse.down_posY;
+                }
+            }
+            else if (p->windowEvent.type == SDL_MOUSEBUTTONUP)
+            {
+                if (p->windowEvent.button.button == SDL_BUTTON_LEFT)
+                {
+                    track_mouse = 0;
+                    mouse.up_posX = p->windowEvent.button.x;
+                    mouse.up_posY = p->windowEvent.button.y;
+                }
+            }
+            if (track_mouse == 1)
+            {
+                mouse.draw_rect.w = p->windowEvent.button.x - mouse.down_posX;
+                mouse.draw_rect.h = p->windowEvent.button.y - mouse.down_posY;
+                SDL_RenderDrawRect(p->renderer, &mouse.draw_rect);
+                SDL_RenderFillRect(p->renderer, &mouse.draw_rect);
+                SDL_RenderPresent(p->renderer);
+                SDL_GetMouseState(&mouse.current_posX, &mouse.current_posY);
+            }
         }
-        SDL_Delay(16); 
+        SDL_Delay(2);
     }
 }
 
 int main(int argc, char **argv)
 {
     t_sdl_data  p;
-    SDL_Window  *window;
-    SDL_Event   windowEvent;
-    SDL_Init(SDL_INIT_EVERYTHING);
+    t_sdl_image i;
 
-    p.window = SDL_CreateWindow("test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
+    SDL_Init(SDL_INIT_EVERYTHING);
+    p.window = SDL_CreateWindow("Tif visual", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
     if (!p.window)
     {
         fprintf(stderr, "Could not create window");
         return (1);
     }
     p.renderer = SDL_CreateRenderer(p.window, -1, SDL_RENDERER_ACCELERATED);
-    window_handling(&p);
+    SDL_SetRenderDrawColor(p.renderer, 255, 0, 0, 255);
+    window_handling(&p, &i);
     SDL_DestroyWindow(p.window);
     SDL_Quit();
     return (0);

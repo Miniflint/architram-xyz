@@ -1,7 +1,7 @@
 FILES = srcs\main.c
 TARGET = main.exe
 FLAGS = -ISDL2/include -LSDL2/lib
-COMPILFLAGS = -lmingw32 -lSDL2main -lSDL2
+COMPILFLAGS = -lmingw32 -lSDL2_image -lSDL2main -lSDL2
 OBJS = ${FILES:.c=.o}
 CC = gcc
 
