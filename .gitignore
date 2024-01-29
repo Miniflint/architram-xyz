@@ -1,3 +1,5 @@
 srcs/*.o
 *.exe
 .vscode
+xyz_files
+*.xyz

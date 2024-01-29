@@ -1,5 +1,7 @@
 #include "main.h"
 #include "main_struct.h"
+#include "parse_file.h"
+#include <string.h>
 
 void print_mouse(char *str, int x, int y)
 {
@@ -21,8 +23,6 @@ void window_handling(t_sdl_data *p, t_sdl_image *i)
 {
     int             track_mouse;
     t_track_mouse   mouse;
-	Uint64 start;
-    double elapsed;
     const int white_draw[4] = 
         {255, 255, 255, 100};
     const int black_draw[4] = 
@@ -33,7 +33,6 @@ void window_handling(t_sdl_data *p, t_sdl_image *i)
     mouse.current_pos.y = 0;
     while (1)
     {
-        start = SDL_GetPerformanceCounter();
         if (SDL_PollEvent(&p->windowEvent))
         {
             if (p->windowEvent.type == SDL_QUIT)
@@ -71,29 +70,97 @@ void window_handling(t_sdl_data *p, t_sdl_image *i)
                     draw_rect(p, &mouse.draw_rect_delete, mouse.down_pos, mouse.last_pos, black_draw);
                 draw_rect(p, &mouse.draw_rect, mouse.down_pos, mouse.current_pos, white_draw);
             }
+            SDL_RenderPresent(p->renderer);
         }
-        SDL_RenderPresent(p->renderer);
-        elapsed = (SDL_GetPerformanceCounter() - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-	    SDL_Delay(floor(16.66666f - elapsed));
     }
+}
+
+float **__init_array(char *str, long size, int bloc_len)
+{
+    long i;
+    float **arr;
+    int y;
+    char *token;
+
+    arr = (float **)malloc(sizeof(float *) * size);
+    if (!arr)
+        return (NULL);
+    i = 0;
+    while (i < size)
+    {
+        arr[i] = (float *)malloc(sizeof(float) * 3);
+        if (!arr[i])
+        {
+            while (--i > 0)
+                free(arr[i]);
+            return (NULL);
+        }
+        i++;
+    }
+    i = 0;
+    token = strtok(str, " \n");
+    while(i < size)
+    {
+        y = 0;
+        while (y < 3)
+        {
+            arr[i][y] = atof(token);
+            token = strtok(NULL, " \n");
+            y++;
+        }
+        i++;
+    }
+    return (arr);
+}
+
+t_file *__init_file(char *path)
+{
+    t_file      *file;
+
+    file = (t_file *)malloc(sizeof(t_file) * 1);
+    if (!file)
+        return (NULL);
+    file->str = read_file(path, &file->size);
+    if (!file->str)
+        return (NULL);
+    file->trimmed_str = (file->str) + 6;
+    file->real_size = file->size - 7;
+    file->line_len = get_strlen_delim(file->trimmed_str, '\n') + 2;
+    file->n_pts = mySqrt(file->real_size / file->line_len);
+    if (file->n_pts < 1)
+        return (NULL);
+    file->float_array = __init_array(file->trimmed_str, file->real_size / file->line_len, file->line_len);
+    if (!file->float_array)
+        return (NULL);
+    return (file);
 }
 
 int main(int argc, char **argv)
 {
     t_sdl_data  p;
     t_sdl_image i;
+    t_file *f;
 
-    SDL_Init(SDL_INIT_EVERYTHING);
-    p.window = SDL_CreateWindow("Tif visual", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
-    if (!p.window)
+    if (argc < 2)
     {
-        fprintf(stderr, "Could not create window");
+        fprintf(stderr, "Provide a .xyz file please");
         return (1);
     }
-    p.renderer = SDL_CreateRenderer(p.window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
-    SDL_SetRenderDrawBlendMode(p.renderer, SDL_BLENDMODE_BLEND);
-    window_handling(&p, &i);
-    SDL_DestroyWindow(p.window);
-    SDL_Quit();
+    //SDL_Init(SDL_INIT_EVENTS);
+    //p.window = SDL_CreateWindow("XYZ visuals", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
+    //if (!p.window)
+    //{
+    //    fprintf(stderr, "Could not create window");
+    //    return (1);
+    //}
+    //p.renderer = SDL_CreateRenderer(p.window, -1, SDL_RENDERER_ACCELERATED);
+    //SDL_SetRenderDrawBlendMode(p.renderer, SDL_BLENDMODE_BLEND);
+    f = __init_file(argv[1]);
+    if (!f)
+        return (1);
+    //window_handling(&p, &i);
+    //SDL_DestroyWindow(p.window);
+    //SDL_Quit();
+    free(f->str);
     return (0);
 }
