@@ -16,14 +16,18 @@ typedef struct S_SDL_Image {
     SDL_Texture     *imageTexture;
 }   t_sdl_image;
 
+typedef struct S_pos {
+    int x;
+    int y;
+}   t_pos;
+
 typedef struct S_Track_mouse {
-    int down_posX;
-    int down_posY;
-    int current_posX;
-    int current_posY;
-    int up_posX;
-    int up_posY;
+    t_pos   down_pos;
+    t_pos   current_pos;
+    t_pos   last_pos;
+    t_pos   up_pos;
     SDL_Rect draw_rect;
+    SDL_Rect draw_rect_delete;
 }   t_track_mouse;
 
 #endif
