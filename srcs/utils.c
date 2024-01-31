@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 int mySqrt(int x)
 {
   long  i;
