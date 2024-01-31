@@ -15,6 +15,9 @@ enum {
 /* utils */
 int mySqrt(int x);
 int get_strlen_delim(char *str, char delim);
-void printf_from_double_float_array(float **arr, int i);
+
+/* image utils */   
+SDL_Texture* load_image(SDL_Renderer* renderer, const char* path);
+void place_image(SDL_Renderer* renderer, SDL_Texture* imageTexture, int x, int y);
 
 #endif
