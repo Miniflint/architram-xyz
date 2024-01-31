@@ -8,8 +8,8 @@
 #include <math.h>
 
 enum {
-    WIDTH = 1920,
-    HEIGHT = 1080
+    WIDTH = 1000,
+    HEIGHT = 800
 };
 
 /* utils */
