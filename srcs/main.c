@@ -152,8 +152,8 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
             {
                 SDL_GetMouseState(&mouse.current_pos.x, &mouse.current_pos.y);
                 i->cur_spacing += p->windowEvent.wheel.y * 100;
-                //i->cur_offset.x -= (mouse.current_pos.x - 200) / (100 * p->windowEvent.wheel.y);
-                //i->cur_offset.y -= (mouse.current_pos.y - 200) / (100 * p->windowEvent.wheel.y);
+                i->cur_offset.x -= ((float)(mouse.current_pos.x) / WIDTH) * (100 * p->windowEvent.wheel.y);
+                i->cur_offset.y -= ((float)(mouse.current_pos.y) / WIDTH) * (100 * p->windowEvent.wheel.y);
             }
     		SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
     		SDL_RenderClear(p->renderer);
