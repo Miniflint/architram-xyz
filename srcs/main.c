@@ -3,14 +3,6 @@
 #include "parse_file.h"
 #include <string.h>
 
-t_pos *current_pos(t_pos *pos)
-{
-    static t_pos *old_pos;
-
-    if (!pos)
-        return (old_pos);
-    old_pos = pos;
-}
 
 void displayText(SDL_Renderer* renderer, char *text, int x, int y) {
 
@@ -97,17 +89,16 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
     const int white_draw[4] = 
         {255, 255, 255, 100};
     const int black_draw[4] = 
-        {0, 0, 0, 255};
+        {0, 0, 0, 100};
 
     track_mouse = 0;
     mouse.current_pos.x = 0;
     mouse.current_pos.y = 0;
-    i->cur_offset.x = 0;
-    i->cur_offset.y = 0;
-    i->cur_spacing = 2;
+    i->cur_spacing = 0;
     SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
     SDL_RenderClear(p->renderer);
     current_pos(&(i->cur_offset));
+    place_image(p->renderer, i->imageTexture, i->cur_spacing);
     while (1)
     {
         if (SDL_PollEvent(&p->windowEvent))
@@ -122,7 +113,7 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
                 {
                     i->cur_offset.x = 0;
                     i->cur_offset.y = 0;
-                    i->cur_spacing = 2;
+                    i->cur_spacing = 0;
                 }
             }
             else if (p->windowEvent.type == SDL_MOUSEBUTTONDOWN)
@@ -138,7 +129,6 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
                     track_mouse = 2;
                     mouse.before_offset.x = p->windowEvent.button.x;
                     mouse.before_offset.y = p->windowEvent.button.y;
-                    renderCoordinates(p->renderer, f->n_pts, i->cur_spacing);
                 }
             }
             else if (p->windowEvent.type == SDL_MOUSEBUTTONUP)
@@ -148,7 +138,8 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
                     track_mouse = 0;
                     mouse.up_pos.x = p->windowEvent.button.x;
                     mouse.up_pos.y = p->windowEvent.button.y;
-                    draw_rect(p, &mouse.draw_rect_delete, (t_pos){0, 0}, (t_pos){WIDTH, HEIGHT}, black_draw);
+    				SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
+    				SDL_RenderClear(p->renderer);
                 }
                 else if (p->windowEvent.button.button == SDL_BUTTON_RIGHT)
                 {
@@ -159,42 +150,34 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
             }
             else if (p->windowEvent.type == SDL_MOUSEWHEEL)
             {
-                if (p->windowEvent.wheel.y > 0)
-                {
-                    i->cur_spacing += 1;
-                }
-                else if (p->windowEvent.wheel.y < 0)
-                {
-                    if (i->cur_spacing > 2)
-                        i->cur_spacing -= 1;
-                }
-                SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
-                SDL_RenderClear(p->renderer);
-                renderCoordinates(p->renderer, f->n_pts, i->cur_spacing);
+                i->cur_spacing += p->windowEvent.wheel.y * 100;
             }
+    		SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
+    		SDL_RenderClear(p->renderer);
+            place_image(p->renderer, i->imageTexture, i->cur_spacing);
             if (track_mouse == 1)
             {
                 mouse.last_pos.x = mouse.current_pos.x;
                 mouse.last_pos.y = mouse.current_pos.y;
                 SDL_GetMouseState(&mouse.current_pos.x, &mouse.current_pos.y);
-                if (mouse.last_pos.x)
-                    draw_rect(p, &mouse.draw_rect_delete, mouse.down_pos, mouse.last_pos, black_draw);
-                draw_rect(p, &mouse.draw_rect, mouse.down_pos, mouse.current_pos, white_draw);
+                //if (mouse.last_pos.x)
+                //    draw_rect(p, &mouse.draw_rect_delete, mouse.down_pos, mouse.last_pos, black_draw);
+                draw_rect(p, &mouse.draw_rect, mouse.down_pos, mouse.current_pos, black_draw);
             }
-            if (track_mouse == 2)
+            else if (track_mouse == 2)
             {
                 mouse.after_offset.x = p->windowEvent.button.x;
                 mouse.after_offset.y = p->windowEvent.button.y;
                 i->cur_offset.x += mouse.after_offset.x - mouse.before_offset.x;
                 i->cur_offset.y += mouse.after_offset.y - mouse.before_offset.y;
                 mouse.before_offset = mouse.after_offset;
-                SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
-                SDL_RenderClear(p->renderer);
             }
-            renderCoordinates(p->renderer, f->n_pts, i->cur_spacing);
+            SDL_RenderPresent(p->renderer);
         }
-        SDL_RenderPresent(p->renderer);
     }
+	SDL_DestroyTexture(i->imageTexture);
+	SDL_DestroyRenderer(p->renderer);
+    SDL_DestroyWindow(p->window);
 }
 
 t_pos_triple **__init_array(char *str, long size, int bloc_len)
@@ -269,7 +252,7 @@ int main(int argc, char **argv)
 
     if (argc < 2)
     {
-        fprintf(stderr, "Provide a .xyz file please");
+        fprintf(stderr, "Provide a .jpg file please");
         return (1);
     }
     i.cur_offset.x = 0;
@@ -285,12 +268,14 @@ int main(int argc, char **argv)
     p.renderer = SDL_CreateRenderer(p.window, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawBlendMode(p.renderer, SDL_BLENDMODE_BLEND);
     displayText(p.renderer, "LOADING FILE", 0, 0);
-    f = __init_file(argv[1]);
-    if (!f)
-        return (1);
+	i.imageTexture = load_image(p.renderer, argv[1]);
+	if (!i.imageTexture)
+		return (1);
+    //f = __init_file(argv[2]);
+    //if (!f)
+    //    return (1);
     window_handling(&p, &i, f);
-    SDL_DestroyWindow(p.window);
     SDL_Quit();
-    free(f->str);
+    //free(f->str);
     return (0);
 }

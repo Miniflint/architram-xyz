@@ -39,6 +39,7 @@ typedef struct S_Track_mouse {
 }   t_track_mouse;
 
 typedef struct S_File_content {
+	char	*path;
     char    *str;
     char    *trimmed_str;
     int         line_len;
@@ -47,5 +48,10 @@ typedef struct S_File_content {
     int         n_pts;
     t_pos_triple **pos;
 }   t_file;
+
+
+/* utils struct */
+
+t_pos *current_pos(t_pos *pos);
 
 #endif
