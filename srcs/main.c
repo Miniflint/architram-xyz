@@ -11,7 +11,7 @@ void displayText(SDL_Renderer* renderer, char *text, int x, int y) {
     SDL_Texture *texture;
     SDL_Rect destRect;
     const SDL_Color textColor
-        = {255, 255, 255};
+        = {255, 255, 255, 255};
 
     font = TTF_OpenFont("ARIAL.TTF", 50);
     surface = TTF_RenderText_Solid(font, text, textColor);
@@ -26,7 +26,7 @@ void displayText(SDL_Renderer* renderer, char *text, int x, int y) {
     SDL_FreeSurface(surface);
 }
 
-void draw_rect(t_sdl_data *p, SDL_Rect *rect, t_pos pos, t_pos size, const int rgba[4])
+void draw_rect(t_sdl_data *p, SDL_Rect *rect, t_pos pos, t_pos size, const int rgba[4], int fill)
 {
     rect->x = pos.x;
     rect->y = pos.y;
@@ -34,46 +34,8 @@ void draw_rect(t_sdl_data *p, SDL_Rect *rect, t_pos pos, t_pos size, const int r
     rect->h = size.y - pos.y;
     SDL_SetRenderDrawColor(p->renderer, rgba[0], rgba[1], rgba[2], rgba[3]);
     SDL_RenderDrawRect(p->renderer, rect);
-    SDL_RenderFillRect(p->renderer, rect);
-}
-
-SDL_Point *create_pts(int size, const int spacing)
-{
-    int i;
-    int j;
-    int index;
-    t_pos *base_coordinate;
-    SDL_Point *pts;
-    const int full_size = 
-        size * size;
-
-    i = 0;
-    index = 0;
-    base_coordinate = current_pos(NULL);
-    pts = (SDL_Point *)malloc(sizeof(SDL_Point) * full_size);
-    while (i < size)
-    {
-        j = 0;
-        while (j < size)
-        {
-            pts[index].x = i * spacing + base_coordinate->x;
-            pts[index].y = j * spacing + base_coordinate->y;
-            index++;
-            j++;
-        }
-        i++;
-    }
-    return (pts);
-}
-
-void renderCoordinates(SDL_Renderer* renderer, int size, const int spacing)
-{
-    SDL_Point* points;
-
-    SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
-    points = create_pts(size, spacing);
-    SDL_RenderDrawPoints(renderer, points, size * size);
-    free(points);
+    if (fill)
+        SDL_RenderFillRect(p->renderer, rect);
 }
 
 void calculate_mouse_offset(int *base_offsetX, int *base_offsetY, int new_posX, int new_posY)
@@ -86,19 +48,19 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
 {
     int             track_mouse;
     t_track_mouse   mouse;
-    const int white_draw[4] = 
-        {255, 255, 255, 100};
     const int black_draw[4] = 
         {0, 0, 0, 100};
 
     track_mouse = 0;
-    mouse.current_pos.x = 0;
-    mouse.current_pos.y = 0;
-    i->cur_spacing = 0;
+    i->cur_offset.x = 0;
+    i->cur_offset.y = 0;
+    if (f)
+        printf("hi");
     SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
     SDL_RenderClear(p->renderer);
     current_pos(&(i->cur_offset));
-    place_image(p->renderer, i->imageTexture, i->cur_spacing);
+    i->cur_spacing = 1;
+    place_image(p->renderer, i);
     while (1)
     {
         if (SDL_PollEvent(&p->windowEvent))
@@ -113,7 +75,7 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
                 {
                     i->cur_offset.x = 0;
                     i->cur_offset.y = 0;
-                    i->cur_spacing = 0;
+                    i->cur_spacing = 1;
                 }
             }
             else if (p->windowEvent.type == SDL_MOUSEBUTTONDOWN)
@@ -138,34 +100,42 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
                     track_mouse = 0;
                     mouse.up_pos.x = p->windowEvent.button.x;
                     mouse.up_pos.y = p->windowEvent.button.y;
-    				SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
-    				SDL_RenderClear(p->renderer);
                 }
                 else if (p->windowEvent.button.button == SDL_BUTTON_RIGHT)
                 {
                     track_mouse = 0;
-                    mouse.after_offset.x = p->windowEvent.button.x;
-                    mouse.after_offset.y = p->windowEvent.button.y;
                 }
             }
             else if (p->windowEvent.type == SDL_MOUSEWHEEL)
             {
                 SDL_GetMouseState(&mouse.current_pos.x, &mouse.current_pos.y);
-                i->cur_spacing += p->windowEvent.wheel.y * 100;
-                i->cur_offset.x -= ((float)(mouse.current_pos.x) / WIDTH) * (100 * p->windowEvent.wheel.y);
-                i->cur_offset.y -= ((float)(mouse.current_pos.y) / WIDTH) * (100 * p->windowEvent.wheel.y);
+                i->cur_spacing += p->windowEvent.wheel.y;
+                i->cur_offset.x -= ((float)(mouse.current_pos.x) / WIDTH) * (i->ZOOMFACTOR * p->windowEvent.wheel.y);
+                i->cur_offset.y -= ((float)(mouse.current_pos.y) / HEIGHT) * (i->ZOOMFACTOR * p->windowEvent.wheel.y);
+                printf("spacing: %i - (%i/%i=%f - %f*%i=%i) - (%i/%i=%f - %f*%i=%i)\n",
+                    i->cur_spacing,
+                    mouse.current_pos.x,
+                    WIDTH,
+                    (float)(mouse.current_pos.x) / WIDTH,
+                    (float)(mouse.current_pos.x) / WIDTH,
+                    i->ZOOMFACTOR * p->windowEvent.wheel.y,
+                    i->cur_offset.x,
+                    mouse.current_pos.y,
+                    HEIGHT,
+                    (float)(mouse.current_pos.y) / HEIGHT,
+                    (float)(mouse.current_pos.y) / HEIGHT,
+                    i->ZOOMFACTOR * p->windowEvent.wheel.y,
+                    i->cur_offset.y
+                );
             }
     		SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
     		SDL_RenderClear(p->renderer);
-            place_image(p->renderer, i->imageTexture, i->cur_spacing);
+            place_image(p->renderer, i);
             if (track_mouse == 1)
             {
-                mouse.last_pos.x = mouse.current_pos.x;
-                mouse.last_pos.y = mouse.current_pos.y;
                 SDL_GetMouseState(&mouse.current_pos.x, &mouse.current_pos.y);
-                //if (mouse.last_pos.x)
-                //    draw_rect(p, &mouse.draw_rect_delete, mouse.down_pos, mouse.last_pos, black_draw);
-                draw_rect(p, &mouse.draw_rect, mouse.down_pos, mouse.current_pos, black_draw);
+                get_image_bottom_left(i, &(i->image_dimensions));
+                draw_rect(p, &mouse.draw_rect, mouse.down_pos, mouse.current_pos, black_draw, 1);
             }
             else if (track_mouse == 2)
             {
@@ -183,7 +153,7 @@ void window_handling(t_sdl_data *p, t_sdl_image *i, t_file *f)
     SDL_DestroyWindow(p->window);
 }
 
-t_pos_triple **__init_array(char *str, long size, int bloc_len)
+t_pos_triple **__init_array(char *str, long size)
 {
     long i;
     int y;
@@ -229,6 +199,8 @@ t_file *__init_file(char *path)
 {
     t_file      *file;
 
+    if (!path)
+        return (NULL);
     file = (t_file *)malloc(sizeof(t_file) * 1);
     if (!file)
         return (NULL);
@@ -241,7 +213,7 @@ t_file *__init_file(char *path)
     file->n_pts = mySqrt(file->real_size / file->line_len);
     if (file->n_pts < 1)
         return (NULL);
-    file->pos = __init_array(file->trimmed_str, file->n_pts, file->line_len);
+    file->pos = __init_array(file->trimmed_str, file->n_pts);
     if (!file->pos)
         return (NULL);
     return (file);
@@ -260,9 +232,9 @@ int main(int argc, char **argv)
     }
     i.cur_offset.x = 0;
     i.cur_offset.y = 0;
-    SDL_Init(SDL_INIT_EVENTS);
+    SDL_Init(SDL_INIT_EVENTS);  
     TTF_Init();
-    p.window = SDL_CreateWindow("XYZ visuals", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
+    p.window = SDL_CreateWindow("JPG visuals", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
     if (!p.window)
     {
         fprintf(stderr, "Could not create window");
@@ -274,7 +246,8 @@ int main(int argc, char **argv)
 	i.imageTexture = load_image(p.renderer, argv[1]);
 	if (!i.imageTexture)
 		return (1);
-    //f = __init_file(argv[2]);
+    i.ZOOMFACTOR = 100;
+    f = __init_file(NULL);
     //if (!f)
     //    return (1);
     window_handling(&p, &i, f);

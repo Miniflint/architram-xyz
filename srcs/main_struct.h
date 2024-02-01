@@ -23,7 +23,9 @@ typedef struct S_SDL_Image {
     SDL_Texture     *imageTexture;
     TTF_Font*       font;
     t_pos   cur_offset;
+    t_pos   image_dimensions;
     int     cur_spacing;
+    int     ZOOMFACTOR;
 }   t_sdl_image;
 
 
@@ -52,6 +54,8 @@ typedef struct S_File_content {
 
 /* utils struct */
 
-t_pos *current_pos(t_pos *pos);
+t_pos   *current_pos(t_pos *pos);
+void    get_image_bottom_left(t_sdl_image *i, t_pos *bottom_right);
+void    place_image(SDL_Renderer* renderer, t_sdl_image *i);
 
 #endif

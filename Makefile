@@ -1,7 +1,7 @@
 FILES = srcs\main.c srcs\parse_file.c srcs\utils.c srcs\image_utils.c
 TARGET = main.exe
-FLAGS = -ISDL2/include -LSDL2/lib -O3
-COMPILFLAGS = -lmingw32 -lSDL2_image -lSDL2main -lSDL2_ttf -lSDL2 
+FLAGS = -ISDL2/include -LSDL2/lib -Wall -Wextra -Werror -g3 -O3
+COMPILFLAGS = -lmingw32 -lSDL2_image -lSDL2main -lSDL2_ttf -lSDL2
 OBJS = ${FILES:.c=.o}
 CC = gcc
 
