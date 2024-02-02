@@ -51,6 +51,19 @@ typedef struct S_File_content {
     t_pos_triple **pos;
 }   t_file;
 
+typedef struct S_Drag_Drop {
+    SDL_Rect jpg_box;
+    SDL_Rect xyz_box;
+    char *path_jpg;
+    char *path_xyz;
+}   t_drag;
+
+typedef struct S_all {
+    t_sdl_data *data;
+    t_sdl_image *image;
+    t_file *file;
+    t_drag *drag;
+}   t_all;
 
 /* utils struct */
 t_file *__init_file(char *path);
