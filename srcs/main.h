@@ -21,4 +21,5 @@ int get_strlen_delim(char *str, char delim);
 /* image utils */
 SDL_Texture* load_image(SDL_Renderer* renderer, const char* path);
 
+
 #endif

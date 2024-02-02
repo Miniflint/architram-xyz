@@ -53,9 +53,12 @@ typedef struct S_File_content {
 
 
 /* utils struct */
-
+t_file *__init_file(char *path);
 t_pos   *current_pos(t_pos *pos);
 void    get_image_bottom_left(t_sdl_image *i, t_pos *bottom_right);
 void    place_image(SDL_Renderer* renderer, t_sdl_image *i);
+
+void handle_mouse(t_sdl_data *p, t_sdl_image *i, t_track_mouse *mouse, int *track_mouse);
+int handle_key_event(t_sdl_data *p, t_sdl_image *i);
 
 #endif
