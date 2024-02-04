@@ -2,6 +2,10 @@
 #include "main_struct.h"
 #include "parse_file.h"
 
+#define DISPLAY_FULLPATH_FILE 50
+#define DISPLAY_FILE_NAME 100
+#define DISPLAY_LOADED 150
+
 void displayTextOnRect(SDL_Renderer* renderer, char *text, SDL_Rect destRect, int size_font, const SDL_Color textColor)
 {
     TTF_Font *font;
@@ -31,7 +35,7 @@ void displayText(SDL_Renderer* renderer, char *text, int x, int y, int size_font
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     destRect.x = x;
     destRect.y = y;
-    destRect.w = surface->w;
+    destRect.w = (surface->w > WIDTH) ? WIDTH - 1 : surface->w;
     destRect.h = surface->h;
     SDL_RenderCopy(renderer, texture, NULL, &destRect);
     SDL_RenderPresent(renderer);
@@ -123,21 +127,22 @@ void draw_halfs(SDL_Renderer *renderer, const int bck[4], const SDL_Rect half, c
 {
     SDL_SetRenderDrawColor(renderer, bck[0], bck[1], bck[2], bck[3]);
     SDL_RenderFillRect(renderer, &half);
-    displayTextOnRect(renderer, str, half, 30, (const SDL_Color){0, 0, 0, 255});
+    displayTextOnRect(renderer, str, half, 30, (const SDL_Color){255, 255, 255, 255});
 }
-
+// TODO: make displayed text disapear between "file loading" and "file loaded" / error
 int thread_load_jpg(void *all)
 {
     t_all *a;
 
     a = (t_all *)all;
+    displayText(a->data->renderer, "[INFO]: File loading", 0, DISPLAY_LOADED, 25, (const SDL_Color){255, 255, 0, 255});
     a->image->imageTexture = load_image(a->data->renderer, a->drag->path_jpg);
     if (!a->image->imageTexture)
     {
-        displayText(a->data->renderer, (char *)IMG_GetError(), 0, 100, 25, (const SDL_Color){255, 0, 0, 255});
+        displayText(a->data->renderer, (char *)IMG_GetError(), 0, DISPLAY_LOADED, 25, (const SDL_Color){255, 0, 0, 255});
         return (1);
     }
-    displayText(a->data->renderer, "[INFO]: JPG file loaded", 0, 100, 25, (const SDL_Color){0, 255, 0, 255});
+    displayText(a->data->renderer, "[INFO]: File loaded", 0, DISPLAY_LOADED, 25, (const SDL_Color){0, 255, 0, 255});
     return (0);
 }
 
@@ -147,18 +152,18 @@ int thread_load_xyz(void *all)
 
     a = (t_all *)all;
     a->file = __init_file(a->drag->path_xyz);
+    displayText(a->data->renderer, "[INFO]: File loading", 0, DISPLAY_LOADED, 25, (const SDL_Color){255, 255, 0, 255});
     if (!a->file)
     {
-        displayText(a->data->renderer, "Unsupported file format", 0, (HEIGHT / 2) + 100, 25, (const SDL_Color){255, 0, 0, 255});
+        displayText(a->data->renderer, "Unsupported file format", 0, (HEIGHT / 2) + DISPLAY_LOADED, 25, (const SDL_Color){255, 0, 0, 255});
         return (1);
     }
-    displayText(a->data->renderer, "[INFO]: XYZ file loaded", 0, (HEIGHT / 2) + 100, 25, (const SDL_Color){0, 255, 0, 255});
+    displayText(a->data->renderer, "[INFO]: File loaded", 0, (HEIGHT / 2) + DISPLAY_LOADED, 25, (const SDL_Color){0, 255, 0, 255});
     return (0);
 }
 
 void drag_drop_window(t_sdl_data *p, t_drag *drag, t_sdl_image *i)
 {
-    t_pos mouse;
     t_all all;
     const SDL_Rect top_half = {
         0, 0, 
@@ -168,12 +173,14 @@ void drag_drop_window(t_sdl_data *p, t_drag *drag, t_sdl_image *i)
         0, (HEIGHT / 2),
         WIDTH, HEIGHT / 2
     };
-    const int jpg[4] = {241, 139, 158, 255};
-    const int xyz[4] = {159, 139, 241, 255};
+    const int jpg[4] = {0, 0, 0, 255};
+    const int xyz[4] = {0, 0, 0, 255};
 
     all.data = p;
     all.drag = drag;
     all.image = i;
+    if (!all.image)
+        return ;
     SDL_SetRenderDrawColor(p->renderer, 0, 0, 0, 255);
     SDL_RenderClear(p->renderer);
     draw_halfs(p->renderer, jpg, top_half, "Drop your JPG here");
@@ -182,8 +189,6 @@ void drag_drop_window(t_sdl_data *p, t_drag *drag, t_sdl_image *i)
     {
         if (SDL_PollEvent(&p->windowEvent))
         {
-            SDL_GetMouseState(&mouse.x, &mouse.y);
-            printf("(%i, %i)\n", mouse.x, mouse.y);
             if (p->windowEvent.type == SDL_QUIT)
                 break ;
             else if (p->windowEvent.type == SDL_KEYDOWN)
@@ -193,25 +198,30 @@ void drag_drop_window(t_sdl_data *p, t_drag *drag, t_sdl_image *i)
             }
             if (p->windowEvent.type == SDL_DROPFILE)
             {
-                printf("a: (%i, %i)\n", p->windowEvent.motion.x, p->windowEvent.motion.y);
-                SDL_GetMouseState(&mouse.x, &mouse.y);
-                printf("b: (%i, %i)\n", mouse.x, mouse.y);
-                if (mouse.y < HEIGHT / 2)
+                if (
+                    custom_strstr(p->windowEvent.drop.file, ".jpg") == 0 ||
+                    custom_strstr(p->windowEvent.drop.file, ".png") == 0 ||
+                    custom_strstr(p->windowEvent.drop.file, ".bmp") == 0 ||
+                    custom_strstr(p->windowEvent.drop.file, ".pnm") == 0 ||
+                    custom_strstr(p->windowEvent.drop.file, ".xpm") == 0
+                )
                 {
-                    if (all.image->imageTexture)
+                    if (all.drag->path_jpg)
                         SDL_free(drag->path_jpg);
                     drag->path_jpg = p->windowEvent.drop.file;
                     draw_halfs(p->renderer, jpg, top_half, "Drop your JPG here");
-                    displayText(p->renderer, drag->path_jpg, 0, 50, 25, (const SDL_Color){0, 0, 0, 255});
+                    displayText(p->renderer, drag->path_jpg, 0, DISPLAY_FULLPATH_FILE, 25, (const SDL_Color){255, 255, 255, 255});
+                    displayText(p->renderer, get_bck_slash(drag->path_jpg), 0, DISPLAY_FILE_NAME, 25, (const SDL_Color){255, 255, 255, 255});
                     SDL_CreateThread(thread_load_jpg, "random", &all);
                 }
                 else
                 {
-                    if (all.file)
+                    if (all.drag->path_xyz)
                         SDL_free(drag->path_xyz);
                     drag->path_xyz = p->windowEvent.drop.file;
                     draw_halfs(p->renderer, xyz, bot_half, "Drop your XYZ here");
-                    displayText(p->renderer, drag->path_xyz, 0, HEIGHT / 2 + 50, 25, (const SDL_Color){0, 0, 0, 255});
+                    displayText(p->renderer, drag->path_xyz, 0, HEIGHT / 2 + DISPLAY_FULLPATH_FILE, 25, (const SDL_Color){255, 255, 255, 255});
+                    displayText(p->renderer, get_bck_slash(drag->path_xyz), 0, HEIGHT / 2 + DISPLAY_FILE_NAME, 25, (const SDL_Color){255, 255, 255, 255});
                     SDL_CreateThread(thread_load_xyz, "random2", &all);
                 }
             }
@@ -233,7 +243,8 @@ int SDL_main(int argc, char **argv)
     }
     i.cur_offset.x = 0;
     i.cur_offset.y = 0;
-    SDL_Init(SDL_INIT_EVENTS);  
+    SDL_Init(SDL_INIT_EVENTS);
+    IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
     TTF_Init();
     p.window = SDL_CreateWindow("JPG visuals", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
     if (!p.window)
