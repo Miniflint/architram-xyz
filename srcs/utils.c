@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 int mySqrt(int x)
 {
     long  i;
@@ -61,4 +63,20 @@ char *get_bck_slash(char *str)
         i--;
     }
     return (str);
+}
+
+void free_double_array(void **arr, int size)
+{
+    int i;
+
+    i = 0;
+    while (i < size)
+    {
+        if (arr[i])
+        {
+            free(arr[i]);
+            arr[i] = (void *)0;
+        }
+        i++;
+    }
 }

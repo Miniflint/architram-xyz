@@ -50,3 +50,4 @@ char *read_file(char *path, long int *size)
         return (NULL);
     return (str);
 }
+

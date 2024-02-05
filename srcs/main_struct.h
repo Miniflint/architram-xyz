@@ -41,7 +41,6 @@ typedef struct S_Track_mouse {
 }   t_track_mouse;
 
 typedef struct S_File_content {
-	char	*path;
     char    *str;
     char    *trimmed_str;
     int         line_len;
@@ -52,8 +51,6 @@ typedef struct S_File_content {
 }   t_file;
 
 typedef struct S_Drag_Drop {
-    SDL_Rect jpg_box;
-    SDL_Rect xyz_box;
     char *path_jpg;
     char *path_xyz;
 }   t_drag;
@@ -63,6 +60,9 @@ typedef struct S_all {
     t_sdl_image *image;
     t_file *file;
     t_drag *drag;
+    SDL_Rect top_half;
+    SDL_Rect bot_half;
+    int     text_colors[4];
 }   t_all;
 
 /* utils struct */
@@ -73,5 +73,10 @@ void    place_image(SDL_Renderer* renderer, t_sdl_image *i);
 
 void handle_mouse(t_sdl_data *p, t_sdl_image *i, t_track_mouse *mouse, int *track_mouse);
 int handle_key_event(t_sdl_data *p, t_sdl_image *i);
+void handle_drop_file(t_all *all, char *file, SDL_Thread *threads[2]);
+void display_text_batch(SDL_Renderer *renderer, char *file, const int START_HEIGHT);
+void draw_halfs(SDL_Renderer *renderer, const int bck[4], const SDL_Rect half, char *str);
+void draw_rect(SDL_Renderer *renderer, SDL_Rect *rect, t_pos pos, t_pos size, const int rgba[4], int fill);
+void clear_rect_screen(SDL_Renderer* renderer, int clearHeight);
 
 #endif
